@@ -134,6 +134,16 @@ class AudioCtrl extends GetxController {
   }
 
   Future<void> initAudioService() async {
+    if (!QuranLibrary.useSystemAudioService) {
+      // Host app opted out (QuranLibrary.init(useSystemAudioService: false)):
+      // run in the same degraded mode as a failed AudioService init — inline
+      // playback only, no system media integration, and no user-facing toast.
+      log('AudioService disabled by host app (useSystemAudioService: false)',
+          name: 'AudioCtrl');
+      state.audioServiceInitialized.value = false;
+      SurahState.setAudioServiceActive(false);
+      return;
+    }
     try {
       await AudioService.init(
         builder: () => AudioHandler.instance,

@@ -49,12 +49,25 @@ class QuranLibrary {
   ///
   /// [init] initializes the FlutterQuran,
   /// and must be called before starting using the package
+  /// When false, the package will NOT call `AudioService.init` (system media
+  /// integration: lock screen / notification / Control Center). Audio playback
+  /// inside the package keeps working without system-surface integration —
+  /// the same degraded mode used when AudioService initialization fails.
+  ///
+  /// Host apps that register their own `audio_service` handler MUST set this
+  /// to false: `audio_service` supports a single handler per app, and a second
+  /// `AudioService.init` silently replaces the host app's remote-command
+  /// routing in release builds.
+  static bool useSystemAudioService = true;
+
   static Future<void> init({
     Map<int, List<BookmarkModel>>? userBookmarks,
     bool overwriteBookmarks = false,
     NumberConverterCallback? numberConverter,
+    bool useSystemAudioService = true,
   }) async {
     if (_isInitialized) return;
+    QuranLibrary.useSystemAudioService = useSystemAudioService;
     customNumberConverter = numberConverter;
 
     await GetStorage.init();
