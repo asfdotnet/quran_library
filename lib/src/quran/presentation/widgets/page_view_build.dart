@@ -30,6 +30,7 @@ class PageViewBuild extends StatelessWidget {
     required this.ayahIconColor,
     required this.showAyahBookmarkedIcon,
     required this.onAyahLongPress,
+    this.onAyahTap,
     required this.bookmarksColor,
     this.customBookmarksColor,
     required this.surahNameStyle,
@@ -58,6 +59,7 @@ class PageViewBuild extends StatelessWidget {
   final bool showAyahBookmarkedIcon;
   final void Function(LongPressStartDetails details, AyahModel ayah)?
       onAyahLongPress;
+  final void Function(AyahModel ayah)? onAyahTap;
   final Color? bookmarksColor;
   final Color? Function(AyahModel)? customBookmarksColor;
   final SurahNameStyle? surahNameStyle;
@@ -111,6 +113,7 @@ class PageViewBuild extends StatelessWidget {
               showAyahBookmarkedIcon: showAyahBookmarkedIcon,
               bookmarks: bookmarksMap,
               onAyahLongPress: onAyahLongPress,
+              onAyahTap: onAyahTap,
               bookmarksColor: bookmarksColor,
                                   customBookmarksColor: customBookmarksColor,
               surahNameStyle: surahNameStyle,

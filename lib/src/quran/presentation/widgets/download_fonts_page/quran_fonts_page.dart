@@ -13,6 +13,7 @@ class _QuranFontsPage extends StatelessWidget {
   final Function(SurahNamesModel surah)? onSurahBannerPress;
   final Function(LongPressStartDetails details, AyahModel ayah)?
       onAyahLongPress;
+  final void Function(AyahModel ayah)? onAyahTap;
 
   final Color? bookmarksColor;
   final Color? Function(AyahModel)? customBookmarksColor;
@@ -40,6 +41,7 @@ class _QuranFontsPage extends StatelessWidget {
     this.bannerStyle,
     this.onSurahBannerPress,
     this.onAyahLongPress,
+    this.onAyahTap,
     this.bookmarksColor,
     this.customBookmarksColor,
     this.textColor,
@@ -109,6 +111,7 @@ class _QuranFontsPage extends StatelessWidget {
       textColor: textColor,
       bookmarks: bookmarks,
       onAyahLongPress: onAyahLongPress,
+      onAyahTap: onAyahTap,
       bookmarkList: bookmarkList,
       ayahIconColor: ayahIconColor,
       showAyahBookmarkedIcon: showAyahBookmarkedIcon,
@@ -167,6 +170,7 @@ class _QuranFontsPage extends StatelessWidget {
           isDark: isDark,
           bookmarks: bookmarks,
           onAyahLongPress: onAyahLongPress,
+          onAyahTap: onAyahTap,
           bookmarkList: bookmarkList,
           ayahIconColor: ayahIconColor,
           showAyahBookmarkedIcon: showAyahBookmarkedIcon,

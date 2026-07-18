@@ -25,6 +25,7 @@ class QuranPagesScreen extends StatelessWidget {
     this.isDark = false,
     this.appLanguageCode,
     this.onAyahLongPress,
+    this.onAyahTap,
     this.onPageChanged,
     this.onPagePress,
     this.onSurahBannerPress,
@@ -92,6 +93,13 @@ class QuranPagesScreen extends StatelessWidget {
   final VoidCallback? onPagePress;
   final void Function(LongPressStartDetails details, AyahModel ayah)?
       onAyahLongPress;
+
+  /// نداء اختياري عند الضغط القصير على آية (على حروفها) — عند تمريره
+  /// يُستدعى بدلاً من سلوك ضغطة الصفحة لهذه الإيماءة فقط.
+  ///
+  /// [onAyahTap] optional per-ayah tap callback; when non-null a tap on an
+  /// ayah's glyphs invokes it instead of the page-level tap for that gesture.
+  final void Function(AyahModel ayah)? onAyahTap;
   final void Function(SurahNamesModel surah)? onSurahBannerPress;
   final bool showAyahBookmarkedIcon;
   final int? surahNumber;
@@ -349,6 +357,7 @@ class QuranPagesScreen extends StatelessWidget {
                           ayahIconColor: ayahIconColor,
                           showAyahBookmarkedIcon: showAyahBookmarkedIcon,
                           onAyahLongPress: onAyahLongPress,
+                          onAyahTap: onAyahTap,
                           bookmarksColor: bookmarksColor,
                                   customBookmarksColor: customBookmarksColor,
                           surahNameStyle: surahNameStyle,

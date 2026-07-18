@@ -29,10 +29,15 @@ TextSpan _qpcV4SpanSegment({
   bool usePaintColoring = true,
   required bool isDark,
   VoidCallback? onPagePress,
+  void Function(AyahModel ayah)? onAyahTap,
 }) {
   final quranCtrl = QuranCtrl.instance;
   final wordInfoCtrl = WordInfoCtrl.instance;
   final AyahModel ayahModel = quranCtrl.getAyahByUq(ayahUQNum);
+
+  // ضغطة قصيرة على حروف الآية: تُفضَّل onAyahTap إن وُجدت، وإلا سلوك الصفحة
+  final VoidCallback? onQuickTap =
+      onAyahTap != null ? () => onAyahTap(ayahModel) : onPagePress;
 
   final withTajweed = QuranCtrl.instance.state.isTajweedEnabled.value;
   final isTenRecitations = WordInfoCtrl.instance.isTenRecitations;
@@ -103,7 +108,7 @@ TextSpan _qpcV4SpanSegment({
       shortHoldDuration: const Duration(milliseconds: 150),
       longHoldDuration: const Duration(milliseconds: 500),
     )
-      ..onQuickTapCallback = onPagePress
+      ..onQuickTapCallback = onQuickTap
       ..onShortHoldStartCallback = () {
         // فارغ عمداً — لإبقاء الحدث حياً حتى يصل للضغط المطوّل
       }
@@ -116,7 +121,7 @@ TextSpan _qpcV4SpanSegment({
       shortHoldDuration: const Duration(milliseconds: 150),
       longHoldDuration: const Duration(milliseconds: 500),
     )
-      ..onQuickTapCallback = onPagePress
+      ..onQuickTapCallback = onQuickTap
       ..onShortHoldStartCallback = () {
         wordInfoCtrl.setSelectedWord(wordRef);
       }

@@ -8,6 +8,7 @@ class QpcV4RichTextLine extends StatefulWidget {
     required this.isDark,
     required this.bookmarks,
     required this.onAyahLongPress,
+    this.onAyahTap,
     required this.bookmarkList,
     required this.ayahIconColor,
     required this.showAyahBookmarkedIcon,
@@ -35,6 +36,7 @@ class QpcV4RichTextLine extends StatefulWidget {
   final Map<int, List<BookmarkModel>> bookmarks;
   final Function(LongPressStartDetails details, AyahModel ayah)?
       onAyahLongPress;
+  final void Function(AyahModel ayah)? onAyahTap;
   final List? bookmarkList;
   final Color? ayahIconColor;
   final bool showAyahBookmarkedIcon;
@@ -273,6 +275,7 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
         ayahBookmarked: widget.ayahBookmarked,
         isDark: widget.isDark,
         onPagePress: widget.onPagePress,
+        onAyahTap: widget.onAyahTap,
       );
 
       final spanStart = charOffset;
