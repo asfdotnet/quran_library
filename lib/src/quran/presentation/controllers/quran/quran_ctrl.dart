@@ -627,6 +627,21 @@ class QuranCtrl extends GetxController {
   // شرح: تحسين التنقل للحصول على سكرول أكثر سلاسة
   // Explanation: Improved navigation for smoother scrolling
   void animateToPage(int page) {
+    // تحقق من المتحكم المحلي أولاً (QuranPagesScreen) — كما في jumpToPage
+    if (_localPagesController != null && _localPagesController!.hasClients) {
+      final localIndex = page - _localPagesOffset;
+      if (localIndex >= 0 && localIndex < _localPagesCount) {
+        state.currentPageNumber.value = page + 1;
+        log('Animating to local page: $localIndex (global: $page)',
+            name: 'QuranCtrl');
+        _localPagesController!.animateToPage(
+          localIndex,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
+        );
+        return;
+      }
+    }
     if (quranPagesController.hasClients) {
       // في وضع الصفحتين: محاذاة الفهرس إلى رقم زوجي لعرض الزوج الصحيح
       final isDual = quranPagesController.viewportFraction < 1.0;
