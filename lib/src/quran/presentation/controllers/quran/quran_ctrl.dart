@@ -626,7 +626,10 @@ class QuranCtrl extends GetxController {
 
   // شرح: تحسين التنقل للحصول على سكرول أكثر سلاسة
   // Explanation: Improved navigation for smoother scrolling
-  void animateToPage(int page) {
+  // [duration]/[curve] override the built-in animation parameters when the
+  // host app wants a different programmatic-flip feel; null keeps the
+  // existing defaults on each path.
+  void animateToPage(int page, {Duration? duration, Curve? curve}) {
     // تحقق من المتحكم المحلي أولاً (QuranPagesScreen) — كما في jumpToPage
     if (_localPagesController != null && _localPagesController!.hasClients) {
       final localIndex = page - _localPagesOffset;
@@ -636,8 +639,8 @@ class QuranCtrl extends GetxController {
             name: 'QuranCtrl');
         _localPagesController!.animateToPage(
           localIndex,
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.easeInOut,
+          duration: duration ?? const Duration(milliseconds: 600),
+          curve: curve ?? Curves.easeInOut,
         );
         return;
       }
@@ -650,8 +653,8 @@ class QuranCtrl extends GetxController {
           name: 'QuranCtrl');
       quranPagesController.animateToPage(
         targetPage,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+        duration: duration ?? const Duration(milliseconds: 300),
+        curve: curve ?? Curves.easeInOut,
       );
     } else {
       log('Creating new PageController for page: $page', name: 'QuranCtrl');
