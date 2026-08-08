@@ -26,6 +26,7 @@ class QuranPagesScreen extends StatelessWidget {
     this.appLanguageCode,
     this.onAyahLongPress,
     this.onAyahTap,
+    this.onAyahDoubleTap,
     this.onPageChanged,
     this.onPagePress,
     this.onSurahBannerPress,
@@ -41,6 +42,8 @@ class QuranPagesScreen extends StatelessWidget {
     this.fontsName = '',
     this.ayahBookmarked = const [],
     this.isAyahBookmarked,
+    this.markedAyahUQNumbers = const [],
+    this.ayahMarkedBackgroundColor,
     this.ayahStyle,
     this.surahStyle,
     this.isShowAudioSlider = true,
@@ -100,6 +103,14 @@ class QuranPagesScreen extends StatelessWidget {
   /// [onAyahTap] optional per-ayah tap callback; when non-null a tap on an
   /// ayah's glyphs invokes it instead of the page-level tap for that gesture.
   final void Function(AyahModel ayah)? onAyahTap;
+
+  /// نداء اختياري عند ضغطتين سريعتين متتاليتين على نفس الآية — يُستدعى
+  /// إضافةً إلى [onAyahTap] (الذي يبقى فورياً على الضغطة الأولى ويتكرر على
+  /// الثانية). عند عدم تمريره لا يوجد أي مفهوم للضغط المزدوج أصلاً.
+  ///
+  /// [onAyahDoubleTap] optional double-tap callback fired IN ADDITION to the
+  /// two [onAyahTap] calls; when null, tap behavior is unchanged.
+  final void Function(AyahModel ayah)? onAyahDoubleTap;
   final void Function(SurahNamesModel surah)? onSurahBannerPress;
   final bool showAyahBookmarkedIcon;
   final int? surahNumber;
@@ -113,6 +124,19 @@ class QuranPagesScreen extends StatelessWidget {
   final String? fontsName;
   final List<int>? ayahBookmarked;
   final bool Function(AyahModel ayah)? isAyahBookmarked;
+
+  /// أرقام الآيات الفريدة المُعلَّمة بعلامة موضع القراءة — طبقة تظليل
+  /// مستقلة عن التحديد والتظليل البرمجي؛ عند التقاطع يغلب لون التحديد.
+  ///
+  /// [markedAyahUQNumbers] unique ayah numbers carrying the reading-position
+  /// marker; an independent highlight layer that selection always overrides.
+  final List<int> markedAyahUQNumbers;
+
+  /// لون خلفية الآية المُعلَّمة؛ عند غيابه لا تُرسم أي طبقة إضافية.
+  ///
+  /// [ayahMarkedBackgroundColor] background color for marked ayahs; when
+  /// null no extra layer is painted.
+  final Color? ayahMarkedBackgroundColor;
   final AyahAudioStyle? ayahStyle;
   final SurahAudioStyle? surahStyle;
   final bool? isShowAudioSlider;
@@ -358,6 +382,7 @@ class QuranPagesScreen extends StatelessWidget {
                           showAyahBookmarkedIcon: showAyahBookmarkedIcon,
                           onAyahLongPress: onAyahLongPress,
                           onAyahTap: onAyahTap,
+                          onAyahDoubleTap: onAyahDoubleTap,
                           bookmarksColor: bookmarksColor,
                                   customBookmarksColor: customBookmarksColor,
                           surahNameStyle: surahNameStyle,
@@ -367,6 +392,8 @@ class QuranPagesScreen extends StatelessWidget {
                           surahNumber: surahNumber,
                           ayahSelectedBackgroundColor:
                               ayahSelectedBackgroundColor,
+                          markedAyahUQNumbers: markedAyahUQNumbers,
+                          ayahMarkedBackgroundColor: ayahMarkedBackgroundColor,
                           onPagePress: onPagePress,
                           isDark: isDark,
                           fontsName: fontsName,

@@ -31,6 +31,7 @@ class PageViewBuild extends StatelessWidget {
     required this.showAyahBookmarkedIcon,
     required this.onAyahLongPress,
     this.onAyahTap,
+    this.onAyahDoubleTap,
     required this.bookmarksColor,
     this.customBookmarksColor,
     required this.surahNameStyle,
@@ -39,6 +40,8 @@ class PageViewBuild extends StatelessWidget {
     required this.onSurahBannerPress,
     required this.surahNumber,
     required this.ayahSelectedBackgroundColor,
+    this.markedAyahUQNumbers = const [],
+    this.ayahMarkedBackgroundColor,
     required this.onPagePress,
     required this.isDark,
     required this.fontsName,
@@ -60,6 +63,7 @@ class PageViewBuild extends StatelessWidget {
   final void Function(LongPressStartDetails details, AyahModel ayah)?
       onAyahLongPress;
   final void Function(AyahModel ayah)? onAyahTap;
+  final void Function(AyahModel ayah)? onAyahDoubleTap;
   final Color? bookmarksColor;
   final Color? Function(AyahModel)? customBookmarksColor;
   final SurahNameStyle? surahNameStyle;
@@ -68,6 +72,12 @@ class PageViewBuild extends StatelessWidget {
   final void Function(SurahNamesModel surah)? onSurahBannerPress;
   final int? surahNumber;
   final Color? ayahSelectedBackgroundColor;
+
+  /// أرقام الآيات الفريدة المُعلَّمة بعلامة موضع القراءة.
+  final List<int> markedAyahUQNumbers;
+
+  /// لون خلفية الآية المُعلَّمة؛ عند غيابه لا تُرسم أي طبقة إضافية.
+  final Color? ayahMarkedBackgroundColor;
   final VoidCallback? onPagePress;
   final bool isDark;
   final String? fontsName;
@@ -114,6 +124,7 @@ class PageViewBuild extends StatelessWidget {
               bookmarks: bookmarksMap,
               onAyahLongPress: onAyahLongPress,
               onAyahTap: onAyahTap,
+              onAyahDoubleTap: onAyahDoubleTap,
               bookmarksColor: bookmarksColor,
                                   customBookmarksColor: customBookmarksColor,
               surahNameStyle: surahNameStyle,
@@ -123,6 +134,8 @@ class PageViewBuild extends StatelessWidget {
               surahNumber: surahNumber,
               bookmarksAyahs: bookmarksAyahSet.toList(),
               ayahSelectedBackgroundColor: ayahSelectedBackgroundColor,
+              markedAyahUQNumbers: markedAyahUQNumbers,
+              ayahMarkedBackgroundColor: ayahMarkedBackgroundColor,
               isDark: isDark,
               circularProgressWidget: circularProgressWidget,
               isFontsLocal: isFontsLocal,

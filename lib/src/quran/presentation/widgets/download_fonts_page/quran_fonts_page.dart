@@ -14,6 +14,7 @@ class _QuranFontsPage extends StatelessWidget {
   final Function(LongPressStartDetails details, AyahModel ayah)?
       onAyahLongPress;
   final void Function(AyahModel ayah)? onAyahTap;
+  final void Function(AyahModel ayah)? onAyahDoubleTap;
 
   final Color? bookmarksColor;
   final Color? Function(AyahModel)? customBookmarksColor;
@@ -22,6 +23,12 @@ class _QuranFontsPage extends StatelessWidget {
   final Map<int, List<BookmarkModel>> bookmarks;
   final List<int> bookmarksAyahs;
   final Color? ayahSelectedBackgroundColor;
+
+  /// أرقام الآيات الفريدة المُعلَّمة بعلامة موضع القراءة.
+  final List<int> markedAyahUQNumbers;
+
+  /// لون خلفية الآية المُعلَّمة؛ عند غيابه لا تُرسم أي طبقة إضافية.
+  final Color? ayahMarkedBackgroundColor;
   final bool isDark;
   final bool showAyahBookmarkedIcon;
   final Widget? circularProgressWidget;
@@ -42,6 +49,7 @@ class _QuranFontsPage extends StatelessWidget {
     this.onSurahBannerPress,
     this.onAyahLongPress,
     this.onAyahTap,
+    this.onAyahDoubleTap,
     this.bookmarksColor,
     this.customBookmarksColor,
     this.textColor,
@@ -50,6 +58,8 @@ class _QuranFontsPage extends StatelessWidget {
     required this.bookmarks,
     required this.bookmarksAyahs,
     this.ayahSelectedBackgroundColor,
+    this.markedAyahUQNumbers = const [],
+    this.ayahMarkedBackgroundColor,
     this.isDark = false,
     this.circularProgressWidget,
     this.isFontsLocal,
@@ -112,6 +122,7 @@ class _QuranFontsPage extends StatelessWidget {
       bookmarks: bookmarks,
       onAyahLongPress: onAyahLongPress,
       onAyahTap: onAyahTap,
+      onAyahDoubleTap: onAyahDoubleTap,
       bookmarkList: bookmarkList,
       ayahIconColor: ayahIconColor,
       showAyahBookmarkedIcon: showAyahBookmarkedIcon,
@@ -119,6 +130,8 @@ class _QuranFontsPage extends StatelessWidget {
       bookmarksColor: bookmarksColor,
                                   customBookmarksColor: customBookmarksColor,
       ayahSelectedBackgroundColor: ayahSelectedBackgroundColor,
+      markedAyahUQNumbers: markedAyahUQNumbers,
+      ayahMarkedBackgroundColor: ayahMarkedBackgroundColor,
       isFontsLocal: isFontsLocal,
       fontsName: fontsName,
       ayahBookmarked: ayahBookmarked,
@@ -171,6 +184,7 @@ class _QuranFontsPage extends StatelessWidget {
           bookmarks: bookmarks,
           onAyahLongPress: onAyahLongPress,
           onAyahTap: onAyahTap,
+          onAyahDoubleTap: onAyahDoubleTap,
           bookmarkList: bookmarkList,
           ayahIconColor: ayahIconColor,
           showAyahBookmarkedIcon: showAyahBookmarkedIcon,
@@ -178,6 +192,8 @@ class _QuranFontsPage extends StatelessWidget {
           bookmarksColor: bookmarksColor,
                                   customBookmarksColor: customBookmarksColor,
           ayahSelectedBackgroundColor: ayahSelectedBackgroundColor,
+          markedAyahUQNumbers: markedAyahUQNumbers,
+          ayahMarkedBackgroundColor: ayahMarkedBackgroundColor,
           isFontsLocal: isFontsLocal ?? false,
           fontsName: fontsName ?? '',
           ayahBookmarked: ayahBookmarked,

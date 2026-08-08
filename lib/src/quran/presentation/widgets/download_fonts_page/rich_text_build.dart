@@ -9,6 +9,7 @@ class QpcV4RichTextLine extends StatefulWidget {
     required this.bookmarks,
     required this.onAyahLongPress,
     this.onAyahTap,
+    this.onAyahDoubleTap,
     required this.bookmarkList,
     required this.ayahIconColor,
     required this.showAyahBookmarkedIcon,
@@ -16,6 +17,8 @@ class QpcV4RichTextLine extends StatefulWidget {
     required this.bookmarksColor,
     this.customBookmarksColor,
     required this.ayahSelectedBackgroundColor,
+    this.markedAyahUQNumbers = const [],
+    this.ayahMarkedBackgroundColor,
     required this.context,
     required this.quranCtrl,
     required this.segments,
@@ -37,6 +40,7 @@ class QpcV4RichTextLine extends StatefulWidget {
   final Function(LongPressStartDetails details, AyahModel ayah)?
       onAyahLongPress;
   final void Function(AyahModel ayah)? onAyahTap;
+  final void Function(AyahModel ayah)? onAyahDoubleTap;
   final List? bookmarkList;
   final Color? ayahIconColor;
   final bool showAyahBookmarkedIcon;
@@ -44,6 +48,13 @@ class QpcV4RichTextLine extends StatefulWidget {
   final Color? bookmarksColor;
   final Color? Function(AyahModel)? customBookmarksColor;
   final Color? ayahSelectedBackgroundColor;
+
+  /// أرقام الآيات الفريدة المُعلَّمة بعلامة موضع القراءة (طبقة تظليل مستقلة
+  /// عن التحديد والتظليل البرمجي).
+  final List<int> markedAyahUQNumbers;
+
+  /// لون خلفية الآية المُعلَّمة؛ عند غيابه لا تُرسم أي طبقة إضافية.
+  final Color? ayahMarkedBackgroundColor;
   final BuildContext context;
   final QuranCtrl quranCtrl;
   final List<QpcV4WordSegment> segments;
@@ -77,6 +88,11 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
     // bookmarks المؤثرة على هذا السطر
     final bmHash = Object.hashAll(widget.bookmarksAyahs);
     final abHash = Object.hashAll(widget.ayahBookmarked);
+    // علامة موضع القراءة: بدونها في البصمة يبقى الكاش يعرض الحالة القديمة
+    final markedHash = Object.hash(
+      Object.hashAll(widget.markedAyahUQNumbers),
+      widget.ayahMarkedBackgroundColor,
+    );
     final overrideHash = widget.isAyahBookmarked == null
         ? 0
         : Object.hashAll(
@@ -109,7 +125,7 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
         wordSelectedHash,
         tenRecHash,
         recitationsRevisionHash,
-        overrideHash);
+        Object.hash(overrideHash, markedHash));
   }
 
   @override
@@ -179,6 +195,9 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
     final bookmarksSet = widget.bookmarksAyahs.toSet();
     final ayahCharRanges = <int, TextSelection>{};
     final bookmarkCharRanges = <int, _ColoredTextRange>{};
+    final markedCharRanges = <int, _ColoredTextRange>{};
+    final markedSet = widget.markedAyahUQNumbers.toSet();
+    final markedColor = widget.ayahMarkedBackgroundColor;
     TextSelection? wordSelectionRange;
     int charOffset = 0;
 
@@ -276,6 +295,7 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
         isDark: widget.isDark,
         onPagePress: widget.onPagePress,
         onAyahTap: widget.onAyahTap,
+        onAyahDoubleTap: widget.onAyahDoubleTap,
       );
 
       final spanStart = charOffset;
@@ -301,6 +321,18 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
             extentOffset: charOffset,
           );
         }
+      }
+
+      // تتبع نطاق علامة موضع القراءة — التحديد/التظليل البرمجي يغلب دائماً
+      if (markedColor != null && !isSelectedCombined && markedSet.contains(uq)) {
+        final existing = markedCharRanges[uq];
+        markedCharRanges[uq] = _ColoredTextRange(
+          range: TextSelection(
+            baseOffset: existing?.range.baseOffset ?? spanStart,
+            extentOffset: charOffset,
+          ),
+          color: markedColor,
+        );
       }
 
       // تتبع نطاقات العلامات المرجعية (bookmarks)
@@ -366,8 +398,9 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
     final hasSelection = ayahCharRanges.isNotEmpty;
     final hasBookmarks = bookmarkCharRanges.isNotEmpty;
     final hasWordSelection = wordSelectionRange != null;
+    final hasMarked = markedCharRanges.isNotEmpty;
 
-    if (!hasSelection && !hasBookmarks && !hasWordSelection) {
+    if (!hasSelection && !hasBookmarks && !hasWordSelection && !hasMarked) {
       return richText;
     }
 
@@ -376,6 +409,7 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
       selectionColor: widget.ayahSelectedBackgroundColor ??
           const Color(0xffCDAD80).withValues(alpha: 0.25),
       bookmarkRanges: bookmarkCharRanges.values.toList(),
+      markedRanges: markedCharRanges.values.toList(),
       wordSelectionRange: wordSelectionRange,
       child: richText,
     );
@@ -411,12 +445,14 @@ class _AyahSelectionWidget extends SingleChildRenderObjectWidget {
   final List<TextSelection> selectedRanges;
   final Color selectionColor;
   final List<_ColoredTextRange> bookmarkRanges;
+  final List<_ColoredTextRange> markedRanges;
   final TextSelection? wordSelectionRange;
 
   const _AyahSelectionWidget({
     required this.selectedRanges,
     required this.selectionColor,
     this.bookmarkRanges = const [],
+    this.markedRanges = const [],
     this.wordSelectionRange,
     required super.child,
   });
@@ -427,6 +463,7 @@ class _AyahSelectionWidget extends SingleChildRenderObjectWidget {
       selectedRanges: selectedRanges,
       selectionColor: selectionColor,
       bookmarkRanges: bookmarkRanges,
+      markedRanges: markedRanges,
       wordSelectionRange: wordSelectionRange,
     );
   }
@@ -438,6 +475,7 @@ class _AyahSelectionWidget extends SingleChildRenderObjectWidget {
       ..selectedRanges = selectedRanges
       ..selectionColor = selectionColor
       ..bookmarkRanges = bookmarkRanges
+      ..markedRanges = markedRanges
       ..wordSelectionRange = wordSelectionRange;
   }
 }
@@ -449,10 +487,12 @@ class _AyahSelectionRenderBox extends RenderProxyBox {
     required List<TextSelection> selectedRanges,
     required Color selectionColor,
     List<_ColoredTextRange> bookmarkRanges = const [],
+    List<_ColoredTextRange> markedRanges = const [],
     TextSelection? wordSelectionRange,
   })  : _selectedRanges = selectedRanges,
         _selectionColor = selectionColor,
         _bookmarkRanges = bookmarkRanges,
+        _markedRanges = markedRanges,
         _wordSelectionRange = wordSelectionRange;
 
   static const _wordSelectionColor =
@@ -478,6 +518,12 @@ class _AyahSelectionRenderBox extends RenderProxyBox {
     markNeedsPaint();
   }
 
+  List<_ColoredTextRange> _markedRanges;
+  set markedRanges(List<_ColoredTextRange> value) {
+    _markedRanges = value;
+    markNeedsPaint();
+  }
+
   TextSelection? _wordSelectionRange;
   set wordSelectionRange(TextSelection? value) {
     if (_wordSelectionRange == value) return;
@@ -491,6 +537,10 @@ class _AyahSelectionRenderBox extends RenderProxyBox {
       // 1) علامات مرجعية (أسفل طبقة)
       if (_bookmarkRanges.isNotEmpty) {
         _paintColoredRanges(context, offset, _bookmarkRanges);
+      }
+      // 1.5) علامة موضع القراءة — فوق العلامات المرجعية، تحت التحديد
+      if (_markedRanges.isNotEmpty) {
+        _paintColoredRanges(context, offset, _markedRanges);
       }
       // 2) تحديد الكلمة
       if (_wordSelectionRange != null) {

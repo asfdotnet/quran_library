@@ -15,6 +15,7 @@ class PageBuild extends StatelessWidget {
     required this.bookmarks,
     required this.onAyahLongPress,
     this.onAyahTap,
+    this.onAyahDoubleTap,
     required this.bookmarkList,
     required this.ayahIconColor,
     required this.showAyahBookmarkedIcon,
@@ -22,6 +23,8 @@ class PageBuild extends StatelessWidget {
     required this.bookmarksColor,
     this.customBookmarksColor,
     required this.ayahSelectedBackgroundColor,
+    this.markedAyahUQNumbers = const [],
+    this.ayahMarkedBackgroundColor,
     required this.isFontsLocal,
     required this.fontsName,
     required this.ayahBookmarked,
@@ -44,6 +47,7 @@ class PageBuild extends StatelessWidget {
   final Function(LongPressStartDetails details, AyahModel ayah)?
       onAyahLongPress;
   final void Function(AyahModel ayah)? onAyahTap;
+  final void Function(AyahModel ayah)? onAyahDoubleTap;
   final List? bookmarkList;
   final Color? ayahIconColor;
   final bool showAyahBookmarkedIcon;
@@ -51,6 +55,12 @@ class PageBuild extends StatelessWidget {
   final Color? bookmarksColor;
   final Color? Function(AyahModel)? customBookmarksColor;
   final Color? ayahSelectedBackgroundColor;
+
+  /// أرقام الآيات الفريدة المُعلَّمة بعلامة موضع القراءة.
+  final List<int> markedAyahUQNumbers;
+
+  /// لون خلفية الآية المُعلَّمة؛ عند غيابه لا تُرسم أي طبقة إضافية.
+  final Color? ayahMarkedBackgroundColor;
   final bool? isFontsLocal;
   final String? fontsName;
   final List<int> ayahBookmarked;
@@ -135,6 +145,7 @@ class PageBuild extends StatelessWidget {
                   bookmarks: bookmarks,
                   onAyahLongPress: onAyahLongPress,
                   onAyahTap: onAyahTap,
+                  onAyahDoubleTap: onAyahDoubleTap,
                   bookmarkList: bookmarkList,
                   ayahIconColor: ayahIconColor,
                   showAyahBookmarkedIcon: showAyahBookmarkedIcon,
@@ -142,6 +153,8 @@ class PageBuild extends StatelessWidget {
                   bookmarksColor: bookmarksColor,
                                   customBookmarksColor: customBookmarksColor,
                   ayahSelectedBackgroundColor: ayahSelectedBackgroundColor,
+                  markedAyahUQNumbers: markedAyahUQNumbers,
+                  ayahMarkedBackgroundColor: ayahMarkedBackgroundColor,
                   context: context,
                   quranCtrl: quranCtrl,
                   segments: filteredSegments,

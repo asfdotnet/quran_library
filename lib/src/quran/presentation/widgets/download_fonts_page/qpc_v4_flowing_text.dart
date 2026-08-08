@@ -13,6 +13,7 @@ class QpcV4FlowingText extends StatefulWidget {
     required this.bookmarks,
     required this.onAyahLongPress,
     this.onAyahTap,
+    this.onAyahDoubleTap,
     required this.bookmarkList,
     required this.ayahIconColor,
     required this.showAyahBookmarkedIcon,
@@ -20,6 +21,8 @@ class QpcV4FlowingText extends StatefulWidget {
     required this.bookmarksColor,
     this.customBookmarksColor,
     required this.ayahSelectedBackgroundColor,
+    this.markedAyahUQNumbers = const [],
+    this.ayahMarkedBackgroundColor,
     required this.isFontsLocal,
     required this.fontsName,
     required this.ayahBookmarked,
@@ -35,6 +38,7 @@ class QpcV4FlowingText extends StatefulWidget {
   final Function(LongPressStartDetails details, AyahModel ayah)?
       onAyahLongPress;
   final void Function(AyahModel ayah)? onAyahTap;
+  final void Function(AyahModel ayah)? onAyahDoubleTap;
   final List? bookmarkList;
   final Color? ayahIconColor;
   final bool showAyahBookmarkedIcon;
@@ -42,6 +46,12 @@ class QpcV4FlowingText extends StatefulWidget {
   final Color? bookmarksColor;
   final Color? Function(AyahModel)? customBookmarksColor;
   final Color? ayahSelectedBackgroundColor;
+
+  /// أرقام الآيات الفريدة المُعلَّمة بعلامة موضع القراءة.
+  final List<int> markedAyahUQNumbers;
+
+  /// لون خلفية الآية المُعلَّمة؛ عند غيابه لا تُرسم أي طبقة إضافية.
+  final Color? ayahMarkedBackgroundColor;
   final bool isFontsLocal;
   final String fontsName;
   final List<int> ayahBookmarked;
@@ -62,6 +72,11 @@ class _QpcV4FlowingTextState extends State<QpcV4FlowingText> {
     final extHash = Object.hashAll(quranCtrl.externallyHighlightedAyahs);
     final bmHash = Object.hashAll(widget.bookmarksAyahs);
     final abHash = Object.hashAll(widget.ayahBookmarked);
+    // علامة موضع القراءة: بدونها في البصمة يبقى الكاش يعرض الحالة القديمة
+    final markedHash = Object.hash(
+      Object.hashAll(widget.markedAyahUQNumbers),
+      widget.ayahMarkedBackgroundColor,
+    );
     final overrideHash = widget.isAyahBookmarked == null
         ? 0
         : Object.hashAll(
@@ -89,7 +104,7 @@ class _QpcV4FlowingTextState extends State<QpcV4FlowingText> {
         wordSelectedHash,
         tenRecHash,
         recitationsRevisionHash,
-        Object.hash(overrideHash, scaleHash));
+        Object.hash(overrideHash, scaleHash, markedHash));
   }
 
   @override
@@ -155,6 +170,10 @@ class _QpcV4FlowingTextState extends State<QpcV4FlowingText> {
     final allBookmarksList =
         widget.bookmarks.values.expand((list) => list).toList();
     final bookmarksAyahsList = bookmarksSet.toList();
+    final markedCharRanges = <int, _ColoredTextRange>{};
+    final markedSet = widget.markedAyahUQNumbers.toSet();
+    final markedColor = widget.ayahMarkedBackgroundColor;
+    int charOffset = 0;
 
     final spans =
         List<InlineSpan>.generate(widget.segments.length, (segmentIndex) {
@@ -173,7 +192,7 @@ class _QpcV4FlowingTextState extends State<QpcV4FlowingText> {
       final info = wordInfoCtrl.getRecitationsInfoSync(ref);
       final hasKhilaf = info?.hasKhilaf ?? false;
 
-      return _qpcV4SpanSegment(
+      final span = _qpcV4SpanSegment(
         context: context,
         pageIndex: widget.pageIndex,
         isSelected: isSelectedCombined,
@@ -245,16 +264,46 @@ class _QpcV4FlowingTextState extends State<QpcV4FlowingText> {
         isDark: widget.isDark,
         onPagePress: widget.onPagePress,
         onAyahTap: widget.onAyahTap,
+        onAyahDoubleTap: widget.onAyahDoubleTap,
       );
+
+      final spanStart = charOffset;
+      charOffset += _countCharsInSpan(span);
+
+      // علامة موضع القراءة — التحديد/التظليل البرمجي يغلب دائماً
+      if (markedColor != null && !isSelectedCombined && markedSet.contains(uq)) {
+        final existing = markedCharRanges[uq];
+        markedCharRanges[uq] = _ColoredTextRange(
+          range: TextSelection(
+            baseOffset: existing?.range.baseOffset ?? spanStart,
+            extentOffset: charOffset,
+          ),
+          color: markedColor,
+        );
+      }
+
+      return span;
     });
 
-    return RichText(
+    final richText = RichText(
       textDirection: TextDirection.rtl,
       textAlign: TextAlign.justify,
       softWrap: true,
       overflow: TextOverflow.visible,
       maxLines: null,
       text: TextSpan(children: spans),
+    );
+
+    if (markedCharRanges.isEmpty) {
+      return richText;
+    }
+
+    return _AyahSelectionWidget(
+      selectedRanges: const [],
+      selectionColor: widget.ayahSelectedBackgroundColor ??
+          const Color(0xffCDAD80).withValues(alpha: 0.25),
+      markedRanges: markedCharRanges.values.toList(),
+      child: richText,
     );
   }
 }

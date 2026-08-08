@@ -30,14 +30,28 @@ TextSpan _qpcV4SpanSegment({
   required bool isDark,
   VoidCallback? onPagePress,
   void Function(AyahModel ayah)? onAyahTap,
+  void Function(AyahModel ayah)? onAyahDoubleTap,
 }) {
   final quranCtrl = QuranCtrl.instance;
   final wordInfoCtrl = WordInfoCtrl.instance;
   final AyahModel ayahModel = quranCtrl.getAyahByUq(ayahUQNum);
 
   // ضغطة قصيرة على حروف الآية: تُفضَّل onAyahTap إن وُجدت، وإلا سلوك الصفحة
-  final VoidCallback? onQuickTap =
+  final VoidCallback? baseQuickTap =
       onAyahTap != null ? () => onAyahTap(ayahModel) : onPagePress;
+
+  // إضافة اختيارية: ضغطة ثانية سريعة على نفس الآية تُطلق [onAyahDoubleTap]
+  // بعد الضغطة الأولى (التي تبقى فورية بلا أي تأخير). عند عدم تمرير
+  // [onAyahDoubleTap] يبقى السلوك مطابقاً تماماً لما كان عليه.
+  final VoidCallback? onQuickTap = onAyahDoubleTap == null
+      ? baseQuickTap
+      : () {
+          final isDoubleTap = _registerAyahQuickTap(ayahUQNum);
+          baseQuickTap?.call();
+          if (isDoubleTap) {
+            onAyahDoubleTap(ayahModel);
+          }
+        };
 
   final withTajweed = QuranCtrl.instance.state.isTajweedEnabled.value;
   final isTenRecitations = WordInfoCtrl.instance.isTenRecitations;
@@ -153,3 +167,32 @@ TextSpan _qpcV4SpanSegment({
 }
 
 typedef _LongPressStartDetailsFunction = void Function(LongPressStartDetails)?;
+
+/// نافذة زمنية لاعتبار ضغطتين سريعتين على نفس الآية «ضغطة مزدوجة».
+const Duration _kAyahDoubleTapWindow = Duration(milliseconds: 300);
+
+int? _lastQuickTapAyahUq;
+DateTime? _lastQuickTapAt;
+
+/// يسجّل ضغطة قصيرة على الآية [ayahUQNum] ويُعيد true إذا كانت ضغطة ثانية
+/// على نفس الآية خلال [_kAyahDoubleTapWindow].
+///
+/// الحالة عامة (وليست داخل الـ recognizer) لأن الـ spans — ومعها الـ
+/// recognizers — يُعاد بناؤها بعد الضغطة الأولى، فلا يمكن لحالة داخل
+/// النسخة الواحدة أن تعيش حتى الضغطة الثانية.
+bool _registerAyahQuickTap(int ayahUQNum) {
+  final now = DateTime.now();
+  final last = _lastQuickTapAt;
+  final isDoubleTap = _lastQuickTapAyahUq == ayahUQNum &&
+      last != null &&
+      now.difference(last) <= _kAyahDoubleTapWindow;
+  if (isDoubleTap) {
+    // لا تتحول ثلاث ضغطات متتالية إلى ضغطتين مزدوجتين متداخلتين
+    _lastQuickTapAyahUq = null;
+    _lastQuickTapAt = null;
+  } else {
+    _lastQuickTapAyahUq = ayahUQNum;
+    _lastQuickTapAt = now;
+  }
+  return isDoubleTap;
+}
