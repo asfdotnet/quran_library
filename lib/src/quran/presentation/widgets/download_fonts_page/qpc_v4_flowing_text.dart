@@ -23,6 +23,9 @@ class QpcV4FlowingText extends StatefulWidget {
     required this.ayahSelectedBackgroundColor,
     this.markedAyahUQNumbers = const [],
     this.ayahMarkedBackgroundColor,
+    this.transientAyahUQNumbers = const [],
+    this.ayahTransientBackgroundColor,
+    this.ayahTransientOpacity,
     required this.isFontsLocal,
     required this.fontsName,
     required this.ayahBookmarked,
@@ -52,6 +55,15 @@ class QpcV4FlowingText extends StatefulWidget {
 
   /// لون خلفية الآية المُعلَّمة؛ عند غيابه لا تُرسم أي طبقة إضافية.
   final Color? ayahMarkedBackgroundColor;
+
+  /// أرقام الآيات الفريدة ذات التظليل المؤقت (تظليل الوصول).
+  final List<int> transientAyahUQNumbers;
+
+  /// لون التظليل المؤقت؛ عند غيابه لا تُرسم أي طبقة إضافية.
+  final Color? ayahTransientBackgroundColor;
+
+  /// معامل شفافية التظليل المؤقت — تغيّره يعيد الرسم وحده.
+  final ValueListenable<double>? ayahTransientOpacity;
   final bool isFontsLocal;
   final String fontsName;
   final List<int> ayahBookmarked;
@@ -76,6 +88,11 @@ class _QpcV4FlowingTextState extends State<QpcV4FlowingText> {
     final markedHash = Object.hash(
       Object.hashAll(widget.markedAyahUQNumbers),
       widget.ayahMarkedBackgroundColor,
+    );
+    // التظليل المؤقت: الشفافية خارج البصمة عمداً — تغيّرها يعيد الرسم وحده
+    final transientHash = Object.hash(
+      Object.hashAll(widget.transientAyahUQNumbers),
+      widget.ayahTransientBackgroundColor,
     );
     final overrideHash = widget.isAyahBookmarked == null
         ? 0
@@ -104,7 +121,7 @@ class _QpcV4FlowingTextState extends State<QpcV4FlowingText> {
         wordSelectedHash,
         tenRecHash,
         recitationsRevisionHash,
-        Object.hash(overrideHash, scaleHash, markedHash));
+        Object.hash(overrideHash, scaleHash, markedHash, transientHash));
   }
 
   @override
@@ -173,6 +190,9 @@ class _QpcV4FlowingTextState extends State<QpcV4FlowingText> {
     final markedCharRanges = <int, _ColoredTextRange>{};
     final markedSet = widget.markedAyahUQNumbers.toSet();
     final markedColor = widget.ayahMarkedBackgroundColor;
+    final transientCharRanges = <int, _ColoredTextRange>{};
+    final transientSet = widget.transientAyahUQNumbers.toSet();
+    final transientColor = widget.ayahTransientBackgroundColor;
     int charOffset = 0;
 
     final spans =
@@ -282,6 +302,20 @@ class _QpcV4FlowingTextState extends State<QpcV4FlowingText> {
         );
       }
 
+      // التظليل المؤقت — التحديد/التظليل البرمجي يغلب دائماً
+      if (transientColor != null &&
+          !isSelectedCombined &&
+          transientSet.contains(uq)) {
+        final existing = transientCharRanges[uq];
+        transientCharRanges[uq] = _ColoredTextRange(
+          range: TextSelection(
+            baseOffset: existing?.range.baseOffset ?? spanStart,
+            extentOffset: charOffset,
+          ),
+          color: transientColor,
+        );
+      }
+
       return span;
     });
 
@@ -294,7 +328,7 @@ class _QpcV4FlowingTextState extends State<QpcV4FlowingText> {
       text: TextSpan(children: spans),
     );
 
-    if (markedCharRanges.isEmpty) {
+    if (markedCharRanges.isEmpty && transientCharRanges.isEmpty) {
       return richText;
     }
 
@@ -303,6 +337,8 @@ class _QpcV4FlowingTextState extends State<QpcV4FlowingText> {
       selectionColor: widget.ayahSelectedBackgroundColor ??
           const Color(0xffCDAD80).withValues(alpha: 0.25),
       markedRanges: markedCharRanges.values.toList(),
+      transientRanges: transientCharRanges.values.toList(),
+      transientOpacity: widget.ayahTransientOpacity,
       child: richText,
     );
   }

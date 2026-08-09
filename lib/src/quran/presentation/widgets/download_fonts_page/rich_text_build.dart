@@ -19,6 +19,9 @@ class QpcV4RichTextLine extends StatefulWidget {
     required this.ayahSelectedBackgroundColor,
     this.markedAyahUQNumbers = const [],
     this.ayahMarkedBackgroundColor,
+    this.transientAyahUQNumbers = const [],
+    this.ayahTransientBackgroundColor,
+    this.ayahTransientOpacity,
     required this.context,
     required this.quranCtrl,
     required this.segments,
@@ -55,6 +58,15 @@ class QpcV4RichTextLine extends StatefulWidget {
 
   /// لون خلفية الآية المُعلَّمة؛ عند غيابه لا تُرسم أي طبقة إضافية.
   final Color? ayahMarkedBackgroundColor;
+
+  /// أرقام الآيات الفريدة ذات التظليل المؤقت (تظليل الوصول).
+  final List<int> transientAyahUQNumbers;
+
+  /// لون التظليل المؤقت؛ عند غيابه لا تُرسم أي طبقة إضافية.
+  final Color? ayahTransientBackgroundColor;
+
+  /// معامل شفافية التظليل المؤقت — تغيّره يعيد الرسم وحده.
+  final ValueListenable<double>? ayahTransientOpacity;
   final BuildContext context;
   final QuranCtrl quranCtrl;
   final List<QpcV4WordSegment> segments;
@@ -93,6 +105,11 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
       Object.hashAll(widget.markedAyahUQNumbers),
       widget.ayahMarkedBackgroundColor,
     );
+    // التظليل المؤقت: الشفافية خارج البصمة عمداً — تغيّرها يعيد الرسم وحده
+    final transientHash = Object.hash(
+      Object.hashAll(widget.transientAyahUQNumbers),
+      widget.ayahTransientBackgroundColor,
+    );
     final overrideHash = widget.isAyahBookmarked == null
         ? 0
         : Object.hashAll(
@@ -125,7 +142,7 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
         wordSelectedHash,
         tenRecHash,
         recitationsRevisionHash,
-        Object.hash(overrideHash, markedHash));
+        Object.hash(overrideHash, markedHash, transientHash));
   }
 
   @override
@@ -198,6 +215,9 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
     final markedCharRanges = <int, _ColoredTextRange>{};
     final markedSet = widget.markedAyahUQNumbers.toSet();
     final markedColor = widget.ayahMarkedBackgroundColor;
+    final transientCharRanges = <int, _ColoredTextRange>{};
+    final transientSet = widget.transientAyahUQNumbers.toSet();
+    final transientColor = widget.ayahTransientBackgroundColor;
     TextSelection? wordSelectionRange;
     int charOffset = 0;
 
@@ -335,6 +355,20 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
         );
       }
 
+      // تتبع نطاق التظليل المؤقت — التحديد/التظليل البرمجي يغلب دائماً
+      if (transientColor != null &&
+          !isSelectedCombined &&
+          transientSet.contains(uq)) {
+        final existing = transientCharRanges[uq];
+        transientCharRanges[uq] = _ColoredTextRange(
+          range: TextSelection(
+            baseOffset: existing?.range.baseOffset ?? spanStart,
+            extentOffset: charOffset,
+          ),
+          color: transientColor,
+        );
+      }
+
       // تتبع نطاقات العلامات المرجعية (bookmarks)
       final isBookmarked = widget.isAyahBookmarked != null
           ? widget.isAyahBookmarked!(widget.quranCtrl.getAyahByUq(uq))
@@ -399,8 +433,13 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
     final hasBookmarks = bookmarkCharRanges.isNotEmpty;
     final hasWordSelection = wordSelectionRange != null;
     final hasMarked = markedCharRanges.isNotEmpty;
+    final hasTransient = transientCharRanges.isNotEmpty;
 
-    if (!hasSelection && !hasBookmarks && !hasWordSelection && !hasMarked) {
+    if (!hasSelection &&
+        !hasBookmarks &&
+        !hasWordSelection &&
+        !hasMarked &&
+        !hasTransient) {
       return richText;
     }
 
@@ -410,6 +449,8 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
           const Color(0xffCDAD80).withValues(alpha: 0.25),
       bookmarkRanges: bookmarkCharRanges.values.toList(),
       markedRanges: markedCharRanges.values.toList(),
+      transientRanges: transientCharRanges.values.toList(),
+      transientOpacity: widget.ayahTransientOpacity,
       wordSelectionRange: wordSelectionRange,
       child: richText,
     );
@@ -446,6 +487,8 @@ class _AyahSelectionWidget extends SingleChildRenderObjectWidget {
   final Color selectionColor;
   final List<_ColoredTextRange> bookmarkRanges;
   final List<_ColoredTextRange> markedRanges;
+  final List<_ColoredTextRange> transientRanges;
+  final ValueListenable<double>? transientOpacity;
   final TextSelection? wordSelectionRange;
 
   const _AyahSelectionWidget({
@@ -453,6 +496,8 @@ class _AyahSelectionWidget extends SingleChildRenderObjectWidget {
     required this.selectionColor,
     this.bookmarkRanges = const [],
     this.markedRanges = const [],
+    this.transientRanges = const [],
+    this.transientOpacity,
     this.wordSelectionRange,
     required super.child,
   });
@@ -464,6 +509,8 @@ class _AyahSelectionWidget extends SingleChildRenderObjectWidget {
       selectionColor: selectionColor,
       bookmarkRanges: bookmarkRanges,
       markedRanges: markedRanges,
+      transientRanges: transientRanges,
+      transientOpacity: transientOpacity,
       wordSelectionRange: wordSelectionRange,
     );
   }
@@ -476,6 +523,8 @@ class _AyahSelectionWidget extends SingleChildRenderObjectWidget {
       ..selectionColor = selectionColor
       ..bookmarkRanges = bookmarkRanges
       ..markedRanges = markedRanges
+      ..transientRanges = transientRanges
+      ..transientOpacity = transientOpacity
       ..wordSelectionRange = wordSelectionRange;
   }
 }
@@ -488,11 +537,15 @@ class _AyahSelectionRenderBox extends RenderProxyBox {
     required Color selectionColor,
     List<_ColoredTextRange> bookmarkRanges = const [],
     List<_ColoredTextRange> markedRanges = const [],
+    List<_ColoredTextRange> transientRanges = const [],
+    ValueListenable<double>? transientOpacity,
     TextSelection? wordSelectionRange,
   })  : _selectedRanges = selectedRanges,
         _selectionColor = selectionColor,
         _bookmarkRanges = bookmarkRanges,
         _markedRanges = markedRanges,
+        _transientRanges = transientRanges,
+        _transientOpacity = transientOpacity,
         _wordSelectionRange = wordSelectionRange;
 
   static const _wordSelectionColor =
@@ -524,6 +577,35 @@ class _AyahSelectionRenderBox extends RenderProxyBox {
     markNeedsPaint();
   }
 
+  List<_ColoredTextRange> _transientRanges;
+  set transientRanges(List<_ColoredTextRange> value) {
+    _transientRanges = value;
+    markNeedsPaint();
+  }
+
+  /// شفافية التظليل المؤقت — يُستمع إليها هنا مباشرةً حتى يقتصر التلاشي على
+  /// إعادة رسم هذه الطبقة، بلا إعادة بناء للنص القرآني في كل إطار.
+  ValueListenable<double>? _transientOpacity;
+  set transientOpacity(ValueListenable<double>? value) {
+    if (identical(_transientOpacity, value)) return;
+    if (attached) _transientOpacity?.removeListener(markNeedsPaint);
+    _transientOpacity = value;
+    if (attached) _transientOpacity?.addListener(markNeedsPaint);
+    markNeedsPaint();
+  }
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    _transientOpacity?.addListener(markNeedsPaint);
+  }
+
+  @override
+  void detach() {
+    _transientOpacity?.removeListener(markNeedsPaint);
+    super.detach();
+  }
+
   TextSelection? _wordSelectionRange;
   set wordSelectionRange(TextSelection? value) {
     if (_wordSelectionRange == value) return;
@@ -541,6 +623,16 @@ class _AyahSelectionRenderBox extends RenderProxyBox {
       // 1.5) علامة موضع القراءة — فوق العلامات المرجعية، تحت التحديد
       if (_markedRanges.isNotEmpty) {
         _paintColoredRanges(context, offset, _markedRanges);
+      }
+      // 1.7) التظليل المؤقت — فوق علامة الموضع، وتحت التحديد/التظليل البرمجي
+      final transientOpacity = (_transientOpacity?.value ?? 1.0).clamp(0.0, 1.0);
+      if (_transientRanges.isNotEmpty && transientOpacity > 0) {
+        _paintColoredRanges(
+          context,
+          offset,
+          _transientRanges,
+          opacity: transientOpacity,
+        );
       }
       // 2) تحديد الكلمة
       if (_wordSelectionRange != null) {
@@ -571,10 +663,14 @@ class _AyahSelectionRenderBox extends RenderProxyBox {
 
   /// رسم خلفيات العلامات المرجعية - كل نطاق بلونه الخاص.
   void _paintColoredRanges(
-      PaintingContext context, Offset offset, List<_ColoredTextRange> ranges) {
+      PaintingContext context, Offset offset, List<_ColoredTextRange> ranges,
+      {double opacity = 1.0}) {
     final paragraph = child! as RenderParagraph;
     for (final cr in ranges) {
-      final paint = Paint()..color = cr.color;
+      final paint = Paint()
+        ..color = opacity == 1.0
+            ? cr.color
+            : cr.color.withValues(alpha: cr.color.a * opacity);
       _paintMergedBoxes(paragraph, context, offset, [cr.range], paint);
     }
   }

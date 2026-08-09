@@ -29,6 +29,15 @@ class _QuranFontsPage extends StatelessWidget {
 
   /// لون خلفية الآية المُعلَّمة؛ عند غيابه لا تُرسم أي طبقة إضافية.
   final Color? ayahMarkedBackgroundColor;
+
+  /// أرقام الآيات الفريدة ذات التظليل المؤقت (تظليل الوصول).
+  final List<int> transientAyahUQNumbers;
+
+  /// لون التظليل المؤقت؛ عند غيابه لا تُرسم أي طبقة إضافية.
+  final Color? ayahTransientBackgroundColor;
+
+  /// معامل شفافية التظليل المؤقت — تغيّره يعيد الرسم وحده.
+  final ValueListenable<double>? ayahTransientOpacity;
   final bool isDark;
   final bool showAyahBookmarkedIcon;
   final Widget? circularProgressWidget;
@@ -60,6 +69,9 @@ class _QuranFontsPage extends StatelessWidget {
     this.ayahSelectedBackgroundColor,
     this.markedAyahUQNumbers = const [],
     this.ayahMarkedBackgroundColor,
+    this.transientAyahUQNumbers = const [],
+    this.ayahTransientBackgroundColor,
+    this.ayahTransientOpacity,
     this.isDark = false,
     this.circularProgressWidget,
     this.isFontsLocal,
@@ -132,6 +144,9 @@ class _QuranFontsPage extends StatelessWidget {
       ayahSelectedBackgroundColor: ayahSelectedBackgroundColor,
       markedAyahUQNumbers: markedAyahUQNumbers,
       ayahMarkedBackgroundColor: ayahMarkedBackgroundColor,
+      transientAyahUQNumbers: transientAyahUQNumbers,
+      ayahTransientBackgroundColor: ayahTransientBackgroundColor,
+      ayahTransientOpacity: ayahTransientOpacity,
       isFontsLocal: isFontsLocal,
       fontsName: fontsName,
       ayahBookmarked: ayahBookmarked,
@@ -194,6 +209,9 @@ class _QuranFontsPage extends StatelessWidget {
           ayahSelectedBackgroundColor: ayahSelectedBackgroundColor,
           markedAyahUQNumbers: markedAyahUQNumbers,
           ayahMarkedBackgroundColor: ayahMarkedBackgroundColor,
+          transientAyahUQNumbers: transientAyahUQNumbers,
+          ayahTransientBackgroundColor: ayahTransientBackgroundColor,
+          ayahTransientOpacity: ayahTransientOpacity,
           isFontsLocal: isFontsLocal ?? false,
           fontsName: fontsName ?? '',
           ayahBookmarked: ayahBookmarked,

@@ -44,6 +44,9 @@ class QuranPagesScreen extends StatelessWidget {
     this.isAyahBookmarked,
     this.markedAyahUQNumbers = const [],
     this.ayahMarkedBackgroundColor,
+    this.transientAyahUQNumbers = const [],
+    this.ayahTransientBackgroundColor,
+    this.ayahTransientOpacity,
     this.ayahStyle,
     this.surahStyle,
     this.isShowAudioSlider = true,
@@ -137,6 +140,28 @@ class QuranPagesScreen extends StatelessWidget {
   /// [ayahMarkedBackgroundColor] background color for marked ayahs; when
   /// null no extra layer is painted.
   final Color? ayahMarkedBackgroundColor;
+
+  /// أرقام الآيات الفريدة ذات التظليل المؤقت (تظليل الوصول) — طبقة مستقلة
+  /// عن علامة الموضع وعن التظليل البرمجي؛ عند التقاطع يغلب لون التحديد.
+  ///
+  /// [transientAyahUQNumbers] unique ayah numbers carrying the host's
+  /// transient (arrival) highlight — its own layer, above the marked layer
+  /// and below the selection layer, so read-along always wins on overlap.
+  final List<int> transientAyahUQNumbers;
+
+  /// لون التظليل المؤقت؛ عند غيابه لا تُرسم أي طبقة إضافية.
+  ///
+  /// [ayahTransientBackgroundColor] background color for the transient
+  /// highlight; when null no extra layer is painted.
+  final Color? ayahTransientBackgroundColor;
+
+  /// معامل شفافية التظليل المؤقت — يُعاد الرسم وحده عند تغيّره، بلا إعادة
+  /// بناء للنص، ليبقى التلاشي سلساً. عند غيابه تُستخدم القيمة 1.
+  ///
+  /// [ayahTransientOpacity] opacity multiplier for the transient layer.
+  /// Changing it repaints ONLY that layer — the rich text is never rebuilt —
+  /// so the host can drive a smooth fade. Null means fully opaque.
+  final ValueListenable<double>? ayahTransientOpacity;
   final AyahAudioStyle? ayahStyle;
   final SurahAudioStyle? surahStyle;
   final bool? isShowAudioSlider;
@@ -394,6 +419,10 @@ class QuranPagesScreen extends StatelessWidget {
                               ayahSelectedBackgroundColor,
                           markedAyahUQNumbers: markedAyahUQNumbers,
                           ayahMarkedBackgroundColor: ayahMarkedBackgroundColor,
+                          transientAyahUQNumbers: transientAyahUQNumbers,
+                          ayahTransientBackgroundColor:
+                              ayahTransientBackgroundColor,
+                          ayahTransientOpacity: ayahTransientOpacity,
                           onPagePress: onPagePress,
                           isDark: isDark,
                           fontsName: fontsName,
