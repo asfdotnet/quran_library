@@ -27,6 +27,7 @@ class QuranPagesScreen extends StatelessWidget {
     this.onAyahLongPress,
     this.onAyahTap,
     this.onAyahDoubleTap,
+    this.onAyahNumberTap,
     this.onPageChanged,
     this.onPagePress,
     this.onSurahBannerPress,
@@ -114,6 +115,15 @@ class QuranPagesScreen extends StatelessWidget {
   /// [onAyahDoubleTap] optional double-tap callback fired IN ADDITION to the
   /// two [onAyahTap] calls; when null, tap behavior is unchanged.
   final void Function(AyahModel ayah)? onAyahDoubleTap;
+
+  /// نداء اختياري عند الضغط السريع على رقم الآية (أو أيقونة العلامة المرجعية
+  /// التي تحلّ محله) — هدف لمس مستقل عن جسم الآية، فلا يُطلق [onAyahTap].
+  /// عند عدم تمريره يبقى ذيل الآية مطابقاً تماماً لما كان عليه.
+  ///
+  /// [onAyahNumberTap] optional tap callback for the ayah-number glyph; it is
+  /// a separate hit target from the ayah body, so it never fires [onAyahTap].
+  /// When null, the tail behaves exactly as before.
+  final void Function(AyahModel ayah)? onAyahNumberTap;
   final void Function(SurahNamesModel surah)? onSurahBannerPress;
   final bool showAyahBookmarkedIcon;
   final int? surahNumber;
@@ -408,6 +418,7 @@ class QuranPagesScreen extends StatelessWidget {
                           onAyahLongPress: onAyahLongPress,
                           onAyahTap: onAyahTap,
                           onAyahDoubleTap: onAyahDoubleTap,
+                          onAyahNumberTap: onAyahNumberTap,
                           bookmarksColor: bookmarksColor,
                                   customBookmarksColor: customBookmarksColor,
                           surahNameStyle: surahNameStyle,

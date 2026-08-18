@@ -31,6 +31,7 @@ TextSpan _qpcV4SpanSegment({
   VoidCallback? onPagePress,
   void Function(AyahModel ayah)? onAyahTap,
   void Function(AyahModel ayah)? onAyahDoubleTap,
+  void Function(AyahModel ayah)? onAyahNumberTap,
 }) {
   final quranCtrl = QuranCtrl.instance;
   final wordInfoCtrl = WordInfoCtrl.instance;
@@ -78,41 +79,71 @@ TextSpan _qpcV4SpanSegment({
     color: textColor ?? AppColors.getTextColor(isDark),
   );
 
+  // ضغطة قصيرة على رقم الآية — هدف لمس مستقل عن جسم الآية. عند عدم تمرير
+  // [onAyahNumberTap] يبقى الذيل (نصاً كان أو أيقونة) مطابقاً تماماً لما كان.
+  final VoidCallback? onNumberQuickTap =
+      onAyahNumberTap == null ? null : () => onAyahNumberTap(ayahModel);
+
   InlineSpan? tail;
   final hasBookmark = isAyahBookmarked != null
       ? isAyahBookmarked(ayahModel)
       : (ayahBookmarked.contains(ayahUQNum) ||
           bookmarksAyahs.contains(ayahUQNum));
   if (showAyahNumber) {
-    tail = hasBookmark && showAyahBookmarkedIcon && !kIsWeb
-        ? WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: Padding(
-              padding: quranCtrl.isQpcV4Enabled
-                  ? const EdgeInsets.symmetric(horizontal: 4.0)
-                  : const EdgeInsets.only(right: 4.0, left: 4.0, bottom: 16.0),
-              child: SvgPicture.asset(
-                AssetsPath.assets.ayahBookmarked,
-                height: UiHelper.currentOrientation(30.0.h, 130.0.h, context),
-                width: UiHelper.currentOrientation(30.0.w, 130.0.w, context),
+    if (hasBookmark && showAyahBookmarkedIcon && !kIsWeb) {
+      final Widget bookmarkIcon = Padding(
+        padding: quranCtrl.isQpcV4Enabled
+            ? const EdgeInsets.symmetric(horizontal: 4.0)
+            : const EdgeInsets.only(right: 4.0, left: 4.0, bottom: 16.0),
+        child: SvgPicture.asset(
+          AssetsPath.assets.ayahBookmarked,
+          height: UiHelper.currentOrientation(30.0.h, 130.0.h, context),
+          width: UiHelper.currentOrientation(30.0.w, 130.0.w, context),
+        ),
+      );
+      tail = WidgetSpan(
+        alignment: PlaceholderAlignment.middle,
+        // الأيقونة WidgetSpan فلا recognizer لها — تُلفّ بـ GestureDetector
+        // كي لا تموت ضغطة الرقم على الآيات المُعلَّمة بعلامة مرجعية.
+        child: onNumberQuickTap == null
+            ? bookmarkIcon
+            : GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onNumberQuickTap,
+                onLongPressStart: onLongPressStart,
+                child: bookmarkIcon,
               ),
-            ),
-          )
-        : TextSpan(
-            text: usePaintColoring
-                ? '${'$ayahNumber'.convertEnglishNumbersToArabic(ayahNumber.toString())}\u202F\u202F'
-                : '\u202F${'$ayahNumber'.convertEnglishNumbersToArabic(ayahNumber.toString())}\u202F',
-            style: TextStyle(
-              fontFamily: 'ayahNumber',
-              fontSize: usePaintColoring ? (fontSize + 5) : (fontSize + 5),
-              height: 1.5,
-              package: 'quran_library',
-              color: ayahIconColor ?? Theme.of(context).colorScheme.primary,
-            ),
-            recognizer: LongPressGestureRecognizer(
+      );
+    } else {
+      tail = TextSpan(
+        text: usePaintColoring
+            ? '${'$ayahNumber'.convertEnglishNumbersToArabic(ayahNumber.toString())}\u202F\u202F'
+            : '\u202F${'$ayahNumber'.convertEnglishNumbersToArabic(ayahNumber.toString())}\u202F',
+        style: TextStyle(
+          fontFamily: 'ayahNumber',
+          fontSize: usePaintColoring ? (fontSize + 5) : (fontSize + 5),
+          height: 1.5,
+          package: 'quran_library',
+          color: ayahIconColor ?? Theme.of(context).colorScheme.primary,
+        ),
+        recognizer: onNumberQuickTap == null
+            ? (LongPressGestureRecognizer(
                 duration: const Duration(milliseconds: 500))
-              ..onLongPressStart = onLongPressStart,
-          );
+              ..onLongPressStart = onLongPressStart)
+            : (TapLongPressRecognizer(
+                shortHoldDuration: const Duration(milliseconds: 150),
+                longHoldDuration: const Duration(milliseconds: 500),
+              )
+              ..onQuickTapCallback = onNumberQuickTap
+              ..onShortHoldStartCallback = () {
+                // فارغ عمداً — لإبقاء الحدث حياً حتى يصل للضغط المطوّل
+              }
+              ..onShortHoldCompleteCallback = null
+              ..onLongHoldStartCallback = (details) {
+                onLongPressStart?.call(details);
+              }),
+      );
+    }
   }
 
   final GestureRecognizer recognizer;

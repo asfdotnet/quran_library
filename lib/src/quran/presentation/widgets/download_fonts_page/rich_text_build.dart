@@ -10,6 +10,7 @@ class QpcV4RichTextLine extends StatefulWidget {
     required this.onAyahLongPress,
     this.onAyahTap,
     this.onAyahDoubleTap,
+    this.onAyahNumberTap,
     required this.bookmarkList,
     required this.ayahIconColor,
     required this.showAyahBookmarkedIcon,
@@ -44,6 +45,8 @@ class QpcV4RichTextLine extends StatefulWidget {
       onAyahLongPress;
   final void Function(AyahModel ayah)? onAyahTap;
   final void Function(AyahModel ayah)? onAyahDoubleTap;
+
+  final void Function(AyahModel ayah)? onAyahNumberTap;
   final List? bookmarkList;
   final Color? ayahIconColor;
   final bool showAyahBookmarkedIcon;
@@ -211,6 +214,8 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
   }) {
     final bookmarksSet = widget.bookmarksAyahs.toSet();
     final ayahCharRanges = <int, TextSelection>{};
+    // نطاقات أرقام الآيات — تُستخدم لتوسيع هدف اللمس (D271) وللقياس.
+    final numberCharRanges = <_AyahNumberRange>[];
     final bookmarkCharRanges = <int, _ColoredTextRange>{};
     final markedCharRanges = <int, _ColoredTextRange>{};
     final markedSet = widget.markedAyahUQNumbers.toSet();
@@ -316,10 +321,24 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
         onPagePress: widget.onPagePress,
         onAyahTap: widget.onAyahTap,
         onAyahDoubleTap: widget.onAyahDoubleTap,
+        onAyahNumberTap: widget.onAyahNumberTap,
       );
 
       final spanStart = charOffset;
       charOffset += _countCharsInSpan(span);
+
+      // ذيل الآية (الرقم أو أيقونة العلامة) هو ما يلي حروفها داخل هذا المقطع.
+      if (seg.isAyahEnd) {
+        final numberStart = spanStart + seg.glyphs.length;
+        if (numberStart < charOffset) {
+          numberCharRanges.add(_AyahNumberRange(
+            ayahUq: uq,
+            ayahNumber: seg.ayahNumber,
+            range:
+                TextSelection(baseOffset: numberStart, extentOffset: charOffset),
+          ));
+        }
+      }
 
       // تتبع نطاق الكلمة المحددة
       if (wordInfoCtrl.selectedWordRef.value == ref) {
@@ -429,6 +448,18 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
       text: TextSpan(children: spans),
     );
 
+    // D271: صندوق الرقم أصغر من 44dp على الجهاز، فتُوسَّع الإصابات القريبة
+    // إليه قبل أن تصل إلى جسم الآية (ضغطة الأزرار). بلا [onAyahNumberTap]
+    // لا تُضاف الطبقة أصلاً فيبقى السلوك كما كان.
+    final Widget probedRichText =
+        (widget.onAyahNumberTap == null || numberCharRanges.isEmpty)
+            ? richText
+            : _AyahNumberHitArea(
+                ranges: numberCharRanges,
+                onAyahNumberTap: widget.onAyahNumberTap!,
+                child: richText,
+              );
+
     final hasSelection = ayahCharRanges.isNotEmpty;
     final hasBookmarks = bookmarkCharRanges.isNotEmpty;
     final hasWordSelection = wordSelectionRange != null;
@@ -440,7 +471,7 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
         !hasWordSelection &&
         !hasMarked &&
         !hasTransient) {
-      return richText;
+      return probedRichText;
     }
 
     return _AyahSelectionWidget(
@@ -452,7 +483,7 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
       transientRanges: transientCharRanges.values.toList(),
       transientOpacity: widget.ayahTransientOpacity,
       wordSelectionRange: wordSelectionRange,
-      child: richText,
+      child: probedRichText,
     );
   }
 }
@@ -725,5 +756,186 @@ class _AyahSelectionRenderBox extends RenderProxyBox {
         );
       }
     }
+  }
+}
+
+/// نطاق نصي لرقم آية داخل الفقرة، مع رقمها الفريد لاستخراج [AyahModel].
+class _AyahNumberRange {
+  const _AyahNumberRange({
+    required this.ayahUq,
+    required this.ayahNumber,
+    required this.range,
+  });
+
+  final int ayahUq;
+  final int ayahNumber;
+  final TextSelection range;
+}
+
+/// الحدّ الأدنى لهدف اللمس بالـ dp (إرشادات إمكانية الوصول).
+const double _kMinAyahNumberTarget = 44.0;
+
+/// طبقة إصابة تسبق الفقرة: توسّع صندوق رقم الآية إلى [_kMinAyahNumberTarget]
+/// وتلتقط الضغطات القريبة منه، فلا تذهب «الإصابة شبه الصائبة» إلى جسم الآية.
+///
+/// الضغطة داخل الصندوق الحقيقي للرقم تُترك للـ recognizer الخاص بالمقطع نفسه.
+class _AyahNumberHitArea extends SingleChildRenderObjectWidget {
+  const _AyahNumberHitArea({
+    required this.ranges,
+    required this.onAyahNumberTap,
+    required super.child,
+  });
+
+  final List<_AyahNumberRange> ranges;
+  final void Function(AyahModel ayah) onAyahNumberTap;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _AyahNumberHitAreaBox(ranges: ranges, onAyahNumberTap: onAyahNumberTap);
+
+  @override
+  void updateRenderObject(
+      BuildContext context, _AyahNumberHitAreaBox renderObject) {
+    renderObject
+      ..ranges = ranges
+      ..onAyahNumberTap = onAyahNumberTap;
+  }
+}
+
+class _AyahNumberHitAreaBox extends RenderProxyBox {
+  _AyahNumberHitAreaBox({
+    required List<_AyahNumberRange> ranges,
+    required this.onAyahNumberTap,
+  }) : _ranges = ranges {
+    _tap = TapGestureRecognizer(debugOwner: this)..onTap = _fire;
+  }
+
+  List<_AyahNumberRange> _ranges;
+  set ranges(List<_AyahNumberRange> value) {
+    if (identical(_ranges, value)) return;
+    _ranges = value;
+    _boxes = null;
+  }
+
+  void Function(AyahModel ayah) onAyahNumberTap;
+
+  late final TapGestureRecognizer _tap;
+
+  /// صناديق الأرقام في فضاء الفقرة، تُحسب كسولاً بعد التخطيط.
+  List<MapEntry<int, Rect>>? _boxes;
+
+  /// معامل التحجيم من فضاء الفقرة إلى الشاشة (FittedBox لكل سطر)، فالتوسيع
+  /// يجب أن يكون 44dp على الشاشة لا 44 وحدة محلية.
+  double _screenScale = 1.0;
+  int? _pendingAyahUq;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    _boxes = null;
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    super.paint(context, offset);
+    final transform = getTransformTo(null);
+    final scale = MatrixUtils.transformRect(
+          transform,
+          const Rect.fromLTWH(0, 0, 100, 100),
+        ).width /
+        100.0;
+    if (scale > 0 && scale.isFinite) _screenScale = scale;
+  }
+
+  /// الفقرة قد لا تكون الابن المباشر (طبقات proxy بينهما)، فيُبحث عنها نزولاً.
+  RenderParagraph? _findParagraph(RenderObject? node) {
+    if (node is RenderParagraph) return node;
+    if (node is RenderProxyBox) return _findParagraph(node.child);
+    return null;
+  }
+
+  List<MapEntry<int, Rect>> _resolveBoxes() {
+    final cached = _boxes;
+    if (cached != null) return cached;
+    final paragraph = _findParagraph(child);
+    final result = <MapEntry<int, Rect>>[];
+    if (paragraph is RenderParagraph) {
+      for (final entry in _ranges) {
+        final boxes = paragraph.getBoxesForSelection(entry.range);
+        if (boxes.isEmpty) continue;
+        double l = boxes.first.left, r = boxes.first.right;
+        double t = boxes.first.top, b = boxes.first.bottom;
+        for (final box in boxes) {
+          l = math.min(l, box.left);
+          r = math.max(r, box.right);
+          t = math.min(t, box.top);
+          b = math.max(b, box.bottom);
+        }
+        result.add(MapEntry(entry.ayahUq, Rect.fromLTRB(l, t, r, b)));
+      }
+    }
+    _boxes = result;
+    return result;
+  }
+
+  /// أقرب رقم آية إلى [position] ضمن الصندوق الموسَّع، أو null.
+  /// التداخل بين صندوقين موسَّعين يُحسم لصالح الأقرب مركزاً.
+  int? _inflatedHitAt(Offset position) {
+    final minTarget = _kMinAyahNumberTarget / (_screenScale <= 0 ? 1.0 : _screenScale);
+    int? best;
+    double bestDistance = double.infinity;
+    for (final entry in _resolveBoxes()) {
+      final box = entry.value;
+      final inflated = Rect.fromCenter(
+        center: box.center,
+        width: math.max(box.width, minTarget),
+        height: math.max(box.height, minTarget),
+      );
+      if (!inflated.contains(position)) continue;
+      final distance = (position - box.center).distanceSquared;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = entry.key;
+      }
+    }
+    return best;
+  }
+
+  /// هل الضغطة داخل الصندوق الحقيقي للرقم؟ عندها يتكفّل بها recognizer المقطع.
+  bool _isOnGlyph(Offset position) {
+    for (final entry in _resolveBoxes()) {
+      if (entry.value.contains(position)) return true;
+    }
+    return false;
+  }
+
+  @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    if (size.contains(position) && !_isOnGlyph(position)) {
+      final uq = _inflatedHitAt(position);
+      if (uq != null) {
+        _pendingAyahUq = uq;
+        result.add(BoxHitTestEntry(this, position));
+        return true;
+      }
+    }
+    return super.hitTest(result, position: position);
+  }
+
+  @override
+  void handleEvent(PointerEvent event, covariant BoxHitTestEntry entry) {
+    if (event is PointerDownEvent) _tap.addPointer(event);
+  }
+
+  void _fire() {
+    final uq = _pendingAyahUq;
+    if (uq == null) return;
+    onAyahNumberTap(QuranCtrl.instance.getAyahByUq(uq));
+  }
+
+  @override
+  void dispose() {
+    _tap.dispose();
+    super.dispose();
   }
 }

@@ -14,6 +14,7 @@ class QpcV4FlowingText extends StatefulWidget {
     required this.onAyahLongPress,
     this.onAyahTap,
     this.onAyahDoubleTap,
+    this.onAyahNumberTap,
     required this.bookmarkList,
     required this.ayahIconColor,
     required this.showAyahBookmarkedIcon,
@@ -42,6 +43,8 @@ class QpcV4FlowingText extends StatefulWidget {
       onAyahLongPress;
   final void Function(AyahModel ayah)? onAyahTap;
   final void Function(AyahModel ayah)? onAyahDoubleTap;
+
+  final void Function(AyahModel ayah)? onAyahNumberTap;
   final List? bookmarkList;
   final Color? ayahIconColor;
   final bool showAyahBookmarkedIcon;
@@ -285,6 +288,7 @@ class _QpcV4FlowingTextState extends State<QpcV4FlowingText> {
         onPagePress: widget.onPagePress,
         onAyahTap: widget.onAyahTap,
         onAyahDoubleTap: widget.onAyahDoubleTap,
+        onAyahNumberTap: widget.onAyahNumberTap,
       );
 
       final spanStart = charOffset;

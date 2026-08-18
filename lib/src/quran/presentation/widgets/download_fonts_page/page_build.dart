@@ -16,6 +16,7 @@ class PageBuild extends StatelessWidget {
     required this.onAyahLongPress,
     this.onAyahTap,
     this.onAyahDoubleTap,
+    this.onAyahNumberTap,
     required this.bookmarkList,
     required this.ayahIconColor,
     required this.showAyahBookmarkedIcon,
@@ -51,6 +52,8 @@ class PageBuild extends StatelessWidget {
       onAyahLongPress;
   final void Function(AyahModel ayah)? onAyahTap;
   final void Function(AyahModel ayah)? onAyahDoubleTap;
+
+  final void Function(AyahModel ayah)? onAyahNumberTap;
   final List? bookmarkList;
   final Color? ayahIconColor;
   final bool showAyahBookmarkedIcon;
@@ -158,6 +161,7 @@ class PageBuild extends StatelessWidget {
                   onAyahLongPress: onAyahLongPress,
                   onAyahTap: onAyahTap,
                   onAyahDoubleTap: onAyahDoubleTap,
+                  onAyahNumberTap: onAyahNumberTap,
                   bookmarkList: bookmarkList,
                   ayahIconColor: ayahIconColor,
                   showAyahBookmarkedIcon: showAyahBookmarkedIcon,
