@@ -27,6 +27,7 @@ class QpcV4FlowingText extends StatefulWidget {
     this.transientAyahUQNumbers = const [],
     this.ayahTransientBackgroundColor,
     this.ayahTransientOpacity,
+    this.ayahSelectedOpacity,
     required this.isFontsLocal,
     required this.fontsName,
     required this.ayahBookmarked,
@@ -67,6 +68,8 @@ class QpcV4FlowingText extends StatefulWidget {
 
   /// معامل شفافية التظليل المؤقت — تغيّره يعيد الرسم وحده.
   final ValueListenable<double>? ayahTransientOpacity;
+
+  final ValueListenable<double>? ayahSelectedOpacity;
   final bool isFontsLocal;
   final String fontsName;
   final List<int> ayahBookmarked;
@@ -197,6 +200,8 @@ class _QpcV4FlowingTextState extends State<QpcV4FlowingText> {
     final transientSet = widget.transientAyahUQNumbers.toSet();
     final transientColor = widget.ayahTransientBackgroundColor;
     int charOffset = 0;
+    // نطاقات أرقام الآيات — لتوسيع هدف اللمس (D272) في وضع التكبير.
+    final numberCharRanges = <_AyahNumberRange>[];
 
     final spans =
         List<InlineSpan>.generate(widget.segments.length, (segmentIndex) {
@@ -294,6 +299,19 @@ class _QpcV4FlowingTextState extends State<QpcV4FlowingText> {
       final spanStart = charOffset;
       charOffset += _countCharsInSpan(span);
 
+      // ذيل الآية (الرقم) هو ما يلي حروفها داخل هذا المقطع.
+      if (seg.isAyahEnd) {
+        final numberStart = spanStart + seg.glyphs.length;
+        if (numberStart < charOffset) {
+          numberCharRanges.add(_AyahNumberRange(
+            ayahUq: uq,
+            ayahNumber: seg.ayahNumber,
+            range:
+                TextSelection(baseOffset: numberStart, extentOffset: charOffset),
+          ));
+        }
+      }
+
       // علامة موضع القراءة — التحديد/التظليل البرمجي يغلب دائماً
       if (markedColor != null && !isSelectedCombined && markedSet.contains(uq)) {
         final existing = markedCharRanges[uq];
@@ -332,18 +350,34 @@ class _QpcV4FlowingTextState extends State<QpcV4FlowingText> {
       text: TextSpan(children: spans),
     );
 
+    // D272 / ASF-93 fact 7: measured on device, the number box in this
+    // (zoomed) layout runs ~35 dp wide at scaleFactor 1.58 and only clears
+    // 44 dp from ~2.0 up — so the lower half of the zoom range needs the same
+    // near-miss inflation the default layout gets.
+    // تُلَفّ حول الشجرة كاملة لا بين التظليل والفقرة — انظر التعليق النظير
+    // في rich_text_build.dart.
+    Widget withHitArea(Widget child) =>
+        (widget.onAyahNumberTap == null || numberCharRanges.isEmpty)
+            ? child
+            : _AyahNumberHitArea(
+                ranges: numberCharRanges,
+                onAyahNumberTap: widget.onAyahNumberTap!,
+                child: child,
+              );
+
     if (markedCharRanges.isEmpty && transientCharRanges.isEmpty) {
-      return richText;
+      return withHitArea(richText);
     }
 
-    return _AyahSelectionWidget(
+    return withHitArea(_AyahSelectionWidget(
       selectedRanges: const [],
       selectionColor: widget.ayahSelectedBackgroundColor ??
           const Color(0xffCDAD80).withValues(alpha: 0.25),
       markedRanges: markedCharRanges.values.toList(),
       transientRanges: transientCharRanges.values.toList(),
       transientOpacity: widget.ayahTransientOpacity,
+      selectionOpacity: widget.ayahSelectedOpacity,
       child: richText,
-    );
+    ));
   }
 }

@@ -46,6 +46,7 @@ class PageViewBuild extends StatelessWidget {
     this.transientAyahUQNumbers = const [],
     this.ayahTransientBackgroundColor,
     this.ayahTransientOpacity,
+    this.ayahSelectedOpacity,
     required this.onPagePress,
     required this.isDark,
     required this.fontsName,
@@ -93,6 +94,8 @@ class PageViewBuild extends StatelessWidget {
 
   /// معامل شفافية التظليل المؤقت — تغيّره يعيد الرسم وحده.
   final ValueListenable<double>? ayahTransientOpacity;
+
+  final ValueListenable<double>? ayahSelectedOpacity;
   final VoidCallback? onPagePress;
   final bool isDark;
   final String? fontsName;
@@ -155,6 +158,7 @@ class PageViewBuild extends StatelessWidget {
               transientAyahUQNumbers: transientAyahUQNumbers,
               ayahTransientBackgroundColor: ayahTransientBackgroundColor,
               ayahTransientOpacity: ayahTransientOpacity,
+              ayahSelectedOpacity: ayahSelectedOpacity,
               isDark: isDark,
               circularProgressWidget: circularProgressWidget,
               isFontsLocal: isFontsLocal,

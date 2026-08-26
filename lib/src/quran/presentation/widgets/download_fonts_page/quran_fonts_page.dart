@@ -40,6 +40,8 @@ class _QuranFontsPage extends StatelessWidget {
 
   /// معامل شفافية التظليل المؤقت — تغيّره يعيد الرسم وحده.
   final ValueListenable<double>? ayahTransientOpacity;
+
+  final ValueListenable<double>? ayahSelectedOpacity;
   final bool isDark;
   final bool showAyahBookmarkedIcon;
   final Widget? circularProgressWidget;
@@ -75,6 +77,7 @@ class _QuranFontsPage extends StatelessWidget {
     this.transientAyahUQNumbers = const [],
     this.ayahTransientBackgroundColor,
     this.ayahTransientOpacity,
+    this.ayahSelectedOpacity,
     this.isDark = false,
     this.circularProgressWidget,
     this.isFontsLocal,
@@ -151,6 +154,7 @@ class _QuranFontsPage extends StatelessWidget {
       transientAyahUQNumbers: transientAyahUQNumbers,
       ayahTransientBackgroundColor: ayahTransientBackgroundColor,
       ayahTransientOpacity: ayahTransientOpacity,
+      ayahSelectedOpacity: ayahSelectedOpacity,
       isFontsLocal: isFontsLocal,
       fontsName: fontsName,
       ayahBookmarked: ayahBookmarked,
@@ -217,6 +221,7 @@ class _QuranFontsPage extends StatelessWidget {
           transientAyahUQNumbers: transientAyahUQNumbers,
           ayahTransientBackgroundColor: ayahTransientBackgroundColor,
           ayahTransientOpacity: ayahTransientOpacity,
+          ayahSelectedOpacity: ayahSelectedOpacity,
           isFontsLocal: isFontsLocal ?? false,
           fontsName: fontsName ?? '',
           ayahBookmarked: ayahBookmarked,

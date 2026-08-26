@@ -23,6 +23,7 @@ class QpcV4RichTextLine extends StatefulWidget {
     this.transientAyahUQNumbers = const [],
     this.ayahTransientBackgroundColor,
     this.ayahTransientOpacity,
+    this.ayahSelectedOpacity,
     required this.context,
     required this.quranCtrl,
     required this.segments,
@@ -70,6 +71,8 @@ class QpcV4RichTextLine extends StatefulWidget {
 
   /// معامل شفافية التظليل المؤقت — تغيّره يعيد الرسم وحده.
   final ValueListenable<double>? ayahTransientOpacity;
+
+  final ValueListenable<double>? ayahSelectedOpacity;
   final BuildContext context;
   final QuranCtrl quranCtrl;
   final List<QpcV4WordSegment> segments;
@@ -214,7 +217,7 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
   }) {
     final bookmarksSet = widget.bookmarksAyahs.toSet();
     final ayahCharRanges = <int, TextSelection>{};
-    // نطاقات أرقام الآيات — تُستخدم لتوسيع هدف اللمس (D271) وللقياس.
+    // نطاقات أرقام الآيات — تُستخدم لتوسيع هدف اللمس (D272) وللقياس.
     final numberCharRanges = <_AyahNumberRange>[];
     final bookmarkCharRanges = <int, _ColoredTextRange>{};
     final markedCharRanges = <int, _ColoredTextRange>{};
@@ -448,16 +451,21 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
       text: TextSpan(children: spans),
     );
 
-    // D271: صندوق الرقم أصغر من 44dp على الجهاز، فتُوسَّع الإصابات القريبة
+    // D272: صندوق الرقم أصغر من 44dp على الجهاز، فتُوسَّع الإصابات القريبة
     // إليه قبل أن تصل إلى جسم الآية (ضغطة الأزرار). بلا [onAyahNumberTap]
     // لا تُضاف الطبقة أصلاً فيبقى السلوك كما كان.
-    final Widget probedRichText =
+    //
+    // تُلَفّ الطبقة حول الشجرة كاملة لا بين التظليل والفقرة: صندوق التظليل
+    // يقرأ ابنه المباشر بوصفه [RenderParagraph]، فأي طبقة بينهما تُلغي رسم
+    // التحديد والعلامة والتظليل المؤقت. طبقة الإصابة نفسها تنزل بحثاً عن
+    // الفقرة، فلا يضرّها البعد.
+    Widget withHitArea(Widget child) =>
         (widget.onAyahNumberTap == null || numberCharRanges.isEmpty)
-            ? richText
+            ? child
             : _AyahNumberHitArea(
                 ranges: numberCharRanges,
                 onAyahNumberTap: widget.onAyahNumberTap!,
-                child: richText,
+                child: child,
               );
 
     final hasSelection = ayahCharRanges.isNotEmpty;
@@ -471,10 +479,10 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
         !hasWordSelection &&
         !hasMarked &&
         !hasTransient) {
-      return probedRichText;
+      return withHitArea(richText);
     }
 
-    return _AyahSelectionWidget(
+    return withHitArea(_AyahSelectionWidget(
       selectedRanges: ayahCharRanges.values.toList(),
       selectionColor: widget.ayahSelectedBackgroundColor ??
           const Color(0xffCDAD80).withValues(alpha: 0.25),
@@ -482,9 +490,10 @@ class _QpcV4RichTextLineState extends State<QpcV4RichTextLine> {
       markedRanges: markedCharRanges.values.toList(),
       transientRanges: transientCharRanges.values.toList(),
       transientOpacity: widget.ayahTransientOpacity,
+      selectionOpacity: widget.ayahSelectedOpacity,
       wordSelectionRange: wordSelectionRange,
-      child: probedRichText,
-    );
+      child: richText,
+    ));
   }
 }
 
@@ -520,6 +529,10 @@ class _AyahSelectionWidget extends SingleChildRenderObjectWidget {
   final List<_ColoredTextRange> markedRanges;
   final List<_ColoredTextRange> transientRanges;
   final ValueListenable<double>? transientOpacity;
+
+  /// شفافية طبقة تحديد الآية — تُمرَّر كـ [ValueListenable] ليُعاد رسم الطبقة
+  /// وحدها في كل إطار بلا إعادة بناء للنص القرآني (نفس نمط [transientOpacity]).
+  final ValueListenable<double>? selectionOpacity;
   final TextSelection? wordSelectionRange;
 
   const _AyahSelectionWidget({
@@ -529,6 +542,7 @@ class _AyahSelectionWidget extends SingleChildRenderObjectWidget {
     this.markedRanges = const [],
     this.transientRanges = const [],
     this.transientOpacity,
+    this.selectionOpacity,
     this.wordSelectionRange,
     required super.child,
   });
@@ -542,6 +556,7 @@ class _AyahSelectionWidget extends SingleChildRenderObjectWidget {
       markedRanges: markedRanges,
       transientRanges: transientRanges,
       transientOpacity: transientOpacity,
+      selectionOpacity: selectionOpacity,
       wordSelectionRange: wordSelectionRange,
     );
   }
@@ -556,6 +571,7 @@ class _AyahSelectionWidget extends SingleChildRenderObjectWidget {
       ..markedRanges = markedRanges
       ..transientRanges = transientRanges
       ..transientOpacity = transientOpacity
+      ..selectionOpacity = selectionOpacity
       ..wordSelectionRange = wordSelectionRange;
   }
 }
@@ -570,6 +586,7 @@ class _AyahSelectionRenderBox extends RenderProxyBox {
     List<_ColoredTextRange> markedRanges = const [],
     List<_ColoredTextRange> transientRanges = const [],
     ValueListenable<double>? transientOpacity,
+    ValueListenable<double>? selectionOpacity,
     TextSelection? wordSelectionRange,
   })  : _selectedRanges = selectedRanges,
         _selectionColor = selectionColor,
@@ -577,6 +594,7 @@ class _AyahSelectionRenderBox extends RenderProxyBox {
         _markedRanges = markedRanges,
         _transientRanges = transientRanges,
         _transientOpacity = transientOpacity,
+        _selectionOpacity = selectionOpacity,
         _wordSelectionRange = wordSelectionRange;
 
   static const _wordSelectionColor =
@@ -625,15 +643,27 @@ class _AyahSelectionRenderBox extends RenderProxyBox {
     markNeedsPaint();
   }
 
+  /// انظر [_AyahSelectionWidget.selectionOpacity].
+  ValueListenable<double>? _selectionOpacity;
+  set selectionOpacity(ValueListenable<double>? value) {
+    if (identical(_selectionOpacity, value)) return;
+    if (attached) _selectionOpacity?.removeListener(markNeedsPaint);
+    _selectionOpacity = value;
+    if (attached) _selectionOpacity?.addListener(markNeedsPaint);
+    markNeedsPaint();
+  }
+
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
     _transientOpacity?.addListener(markNeedsPaint);
+    _selectionOpacity?.addListener(markNeedsPaint);
   }
 
   @override
   void detach() {
     _transientOpacity?.removeListener(markNeedsPaint);
+    _selectionOpacity?.removeListener(markNeedsPaint);
     super.detach();
   }
 
@@ -678,17 +708,27 @@ class _AyahSelectionRenderBox extends RenderProxyBox {
         );
       }
       // 3) تحديد الآية (أعلى طبقة)
-      if (_selectedRanges.isNotEmpty) {
-        _paintSelectionBackgrounds(context, offset);
+      final selectionOpacity = (_selectionOpacity?.value ?? 1.0).clamp(0.0, 1.0);
+      if (_selectedRanges.isNotEmpty && selectionOpacity > 0) {
+        _paintSelectionBackgrounds(context, offset, selectionOpacity);
       }
     }
     super.paint(context, offset);
   }
 
   /// رسم خلفيات التحديد خلف الآيات المحدّدة.
-  void _paintSelectionBackgrounds(PaintingContext context, Offset offset) {
+  void _paintSelectionBackgrounds(
+    PaintingContext context,
+    Offset offset,
+    double opacity,
+  ) {
     final paragraph = child! as RenderParagraph;
-    final bgPaint = Paint()..color = _selectionColor;
+    final bgPaint = Paint()
+      ..color = opacity >= 1.0
+          ? _selectionColor
+          : _selectionColor.withValues(
+              alpha: (_selectionColor.a * opacity).clamp(0.0, 1.0),
+            );
     _paintMergedBoxes(paragraph, context, offset, _selectedRanges, bgPaint);
   }
 

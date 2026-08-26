@@ -29,6 +29,7 @@ class PageBuild extends StatelessWidget {
     this.transientAyahUQNumbers = const [],
     this.ayahTransientBackgroundColor,
     this.ayahTransientOpacity,
+    this.ayahSelectedOpacity,
     required this.isFontsLocal,
     required this.fontsName,
     required this.ayahBookmarked,
@@ -76,6 +77,8 @@ class PageBuild extends StatelessWidget {
 
   /// معامل شفافية التظليل المؤقت — تغيّره يعيد الرسم وحده.
   final ValueListenable<double>? ayahTransientOpacity;
+
+  final ValueListenable<double>? ayahSelectedOpacity;
   final bool? isFontsLocal;
   final String? fontsName;
   final List<int> ayahBookmarked;
@@ -174,6 +177,7 @@ class PageBuild extends StatelessWidget {
                   transientAyahUQNumbers: transientAyahUQNumbers,
                   ayahTransientBackgroundColor: ayahTransientBackgroundColor,
                   ayahTransientOpacity: ayahTransientOpacity,
+                  ayahSelectedOpacity: ayahSelectedOpacity,
                   context: context,
                   quranCtrl: quranCtrl,
                   segments: filteredSegments,

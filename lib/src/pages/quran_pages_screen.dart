@@ -48,6 +48,7 @@ class QuranPagesScreen extends StatelessWidget {
     this.transientAyahUQNumbers = const [],
     this.ayahTransientBackgroundColor,
     this.ayahTransientOpacity,
+    this.ayahSelectedOpacity,
     this.ayahStyle,
     this.surahStyle,
     this.isShowAudioSlider = true,
@@ -172,6 +173,14 @@ class QuranPagesScreen extends StatelessWidget {
   /// Changing it repaints ONLY that layer — the rich text is never rebuilt —
   /// so the host can drive a smooth fade. Null means fully opaque.
   final ValueListenable<double>? ayahTransientOpacity;
+
+  /// شفافية طبقة تحديد الآية (ضغطة مطوّلة). تُمرَّر كـ [ValueListenable] فتُعاد
+  /// الطبقة وحدها في كل إطار بلا إعادة بناء للنص — نفس نمط
+  /// [ayahTransientOpacity]. عند غيابها يبقى التحديد بكامل شدّته.
+  ///
+  /// [ayahSelectedOpacity] opacity multiplier for the ayah-selection layer,
+  /// repainted per frame without rebuilding the page. Null = fully opaque.
+  final ValueListenable<double>? ayahSelectedOpacity;
   final AyahAudioStyle? ayahStyle;
   final SurahAudioStyle? surahStyle;
   final bool? isShowAudioSlider;
@@ -434,6 +443,7 @@ class QuranPagesScreen extends StatelessWidget {
                           ayahTransientBackgroundColor:
                               ayahTransientBackgroundColor,
                           ayahTransientOpacity: ayahTransientOpacity,
+                          ayahSelectedOpacity: ayahSelectedOpacity,
                           onPagePress: onPagePress,
                           isDark: isDark,
                           fontsName: fontsName,
